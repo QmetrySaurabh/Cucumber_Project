@@ -1,0 +1,54 @@
+on:
+  push:
+env:
+  PROJECT: NFS
+  FILE_NAME: target/Cucumber.json
+  TESTING_TYPE: CUCUMBER
+  SKIP_WARNING: 1
+  IS_MATCHING_REQUIRED: 'false'
+  # RELEASE_ID:
+  # CYCLE_ID:
+  # BUILD_ID:
+  # PLATFORM_ID:
+  # TESTSUITE_NAME:
+  # TESTSUITE_ID:
+  # TESTSUITE_FOLDER_PATH:
+  # AUTOMATION_HIERARCHY:
+  # TESTCASE_FIELDS:
+  # TESTSUITE_FIELDS:
+  
+jobs:
+  upload-cucumber-results:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build project and run Tests
+        run: mvn clean install
+
+      - name: Check if cucumber.json exists
+        run: |
+          if [ -f "$FILE_NAME" ]; then
+            echo "✅ $FILE_NAME exists."
+          else
+            echo "❌ $FILE_NAME does not exist."
+            exit 1
+          fi
+
+      - name: Upload Cucumber Results to QMetry
+        run: |
+          FINAL_RESPONSE="$(curl --location \
+            --request POST "https://testmanagement.qmetry.com/rest/import/createandscheduletestresults/1" \
+            --header "project:$PROJECT" \
+            --header "apiKey:T0cEQJ1G5r8ztbyH4lsPI9IvWe3yV3moPpgQ375v" \
+            --form "file=@$FILE_NAME" \
+            --form "entityType=$TESTING_TYPE")"
+          echo "API Response = $FINAL_RESPONSE"
